@@ -4,6 +4,10 @@ pipeline {
     environment {
         HAS_DOCKER = 'false'
         HAS_MVN = 'false'
+        HAS_JAVA = 'false'
+        HAS_TAR = 'false'
+        HAS_CURL = 'false'
+        HAS_WGET = 'false'
         MVN_CMD = 'mvn'
     }
 
@@ -20,8 +24,28 @@ pipeline {
                         script: 'if command -v mvn >/dev/null 2>&1; then echo true; else echo false; fi',
                         returnStdout: true
                     ).trim()
+                    env.HAS_JAVA = sh(
+                        script: 'if command -v java >/dev/null 2>&1; then echo true; else echo false; fi',
+                        returnStdout: true
+                    ).trim()
+                    env.HAS_TAR = sh(
+                        script: 'if command -v tar >/dev/null 2>&1; then echo true; else echo false; fi',
+                        returnStdout: true
+                    ).trim()
+                    env.HAS_CURL = sh(
+                        script: 'if command -v curl >/dev/null 2>&1; then echo true; else echo false; fi',
+                        returnStdout: true
+                    ).trim()
+                    env.HAS_WGET = sh(
+                        script: 'if command -v wget >/dev/null 2>&1; then echo true; else echo false; fi',
+                        returnStdout: true
+                    ).trim()
                     echo "Docker available: ${env.HAS_DOCKER}"
                     echo "Maven available: ${env.HAS_MVN}"
+                    echo "Java available: ${env.HAS_JAVA}"
+                    echo "tar available: ${env.HAS_TAR}"
+                    echo "curl available: ${env.HAS_CURL}"
+                    echo "wget available: ${env.HAS_WGET}"
                 }
             }
         }
@@ -36,6 +60,14 @@ set -eu
 MAVEN_VERSION=3.9.9
 MAVEN_DIR=".maven/apache-maven-${MAVEN_VERSION}"
 if [ ! -x "${MAVEN_DIR}/bin/mvn" ]; then
+    if [ "${HAS_TAR}" != "true" ]; then
+        echo "ERROR: 'tar' is not available on the Jenkins agent. Install tar or Maven on the agent."
+        exit 1
+    fi
+    if [ "${HAS_CURL}" != "true" ] && [ "${HAS_WGET}" != "true" ]; then
+        echo "ERROR: Neither curl nor wget is available to download Maven."
+        exit 1
+    fi
   mkdir -p .maven
   ARCHIVE="apache-maven-${MAVEN_VERSION}-bin.tar.gz"
   URL="https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/${ARCHIVE}"
@@ -43,9 +75,6 @@ if [ ! -x "${MAVEN_DIR}/bin/mvn" ]; then
     curl -fsSL "$URL" -o ".maven/${ARCHIVE}"
   elif command -v wget >/dev/null 2>&1; then
     wget -q -O ".maven/${ARCHIVE}" "$URL"
-  else
-    echo "ERROR: Neither curl nor wget is available to download Maven."
-    exit 1
   fi
   tar -xzf ".maven/${ARCHIVE}" -C .maven
 fi
@@ -91,10 +120,19 @@ fi
 
         stage('Run Java App (Fallback)') {
             when {
-                expression { env.HAS_DOCKER != 'true' }
+                expression { env.HAS_DOCKER != 'true' && env.HAS_JAVA == 'true' }
             }
             steps {
                 sh 'java -cp target/sample-java-1.0-SNAPSHOT.jar Main'
+            }
+        }
+
+        stage('Validate Java Availability (Fallback)') {
+            when {
+                expression { env.HAS_DOCKER != 'true' && env.HAS_JAVA != 'true' }
+            }
+            steps {
+                error('Java is not available on this Jenkins agent PATH. Install Java 17+ and rerun.')
             }
         }
 
