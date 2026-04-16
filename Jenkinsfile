@@ -1,10 +1,19 @@
 pipeline {
     agent any
+
     stages {
-        stage('Build') {
+
+        stage('Docker Build') {
             steps {
-                sh 'mvn clean package'
+                sh 'docker build --no-cache -t my-app .'
             }
         }
+
+        stage('Run Container') {
+            steps {
+                sh 'docker run my-app'
+            }
+        }
+
     }
 }
