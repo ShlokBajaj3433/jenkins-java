@@ -72,7 +72,7 @@ docker run --rm my-app
 
 ## Run Jenkins Inside Docker
 
-This is the recommended setup for this project. Jenkins runs in Docker, then the pipeline builds and runs this Java app from inside that Jenkins container.
+This is the recommended setup for this project. Jenkins runs in Docker, then Jenkins uses Maven inside the container to build and run the Java app.
 
 ### 1. Start Jenkins container
 
@@ -80,17 +80,16 @@ This is the recommended setup for this project. Jenkins runs in Docker, then the
 docker volume create jenkins_home
 
 docker run -d --name jenkins `
-  -p 8081:8080 -p 50000:50000 `
+  -p 8080:8080 -p 50000:50000 `
   -v jenkins_home:/var/jenkins_home `
-  -v //var/run/docker.sock:/var/run/docker.sock `
   -v c:/codes/Jenkins:/workspace `
   jenkins/jenkins:lts-jdk17
 ```
 
-### 2. Install Docker CLI inside Jenkins container
+### 2. Install Maven inside Jenkins container
 
 ```powershell
-docker exec -u 0 jenkins sh -c "apt-get update && apt-get install -y docker.io"
+docker exec -u 0 jenkins sh -c "apt-get update && apt-get install -y maven"
 ```
 
 ### 3. Open Jenkins and unlock
@@ -106,22 +105,22 @@ Install suggested plugins and complete the first admin user setup.
 
 ## Jenkins Pipeline
 
-The pipeline uses Docker inside Jenkins:
+The pipeline uses Maven inside Jenkins:
 
-1. Build the Java image
-2. Run the container
+1. Check out the repo
+2. Build the Java app
+3. Run the Java class
 
 ### Stages in Jenkinsfile
 
 - Checkout
-- Build Image
-- Run Container
+- Build
 
 ### Jenkins setup requirements
 
 - Jenkins agent with shell support
-- Docker socket mounted and Docker CLI installed in the Jenkins container
-- Docker access from the Jenkins container
+- Maven installed in the Jenkins container
+- Java 17 available in the Jenkins container
 
 ### Create Jenkins job for this project
 
@@ -133,18 +132,16 @@ The pipeline uses Docker inside Jenkins:
 6. Script Path: Jenkinsfile
 7. Click Build Now.
 
-The pipeline then checks out the repo, builds the Docker image, and runs the Java app from the container.
+The pipeline then checks out the repo, builds the app with Maven, and runs the main class directly inside Jenkins.
 
 ## Troubleshooting
 
 - `mvn: command not found`:
-  - This pipeline no longer uses Maven directly in Jenkins
+  - Install Maven inside the Jenkins container
 - `java: command not found`:
-  - The app runs inside the Docker image, so Java must be available in the image, not on Jenkins
-- Docker permission issues:
-  - Ensure Jenkins user can run Docker commands
+  - Use the Jenkins image with JDK 17 or install Java 17 in the container
 
 ## Keep It Simple and Standard
 
 - Build locally with Maven when needed
-- Build and run with Docker inside Jenkins
+- Build and run with Maven inside Jenkins

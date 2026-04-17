@@ -12,15 +12,10 @@ pipeline {
             }
         }
 
-        stage('Build Image') {
+        stage('Build') {
             steps {
-                sh 'docker build --no-cache -t sample-java-app .'
-            }
-        }
-
-        stage('Run Container') {
-            steps {
-                sh 'docker run --rm sample-java-app'
+                sh 'mvn -B clean package'
+                sh 'java -cp target/sample-java-1.0-SNAPSHOT.jar Main'
             }
         }
     }
