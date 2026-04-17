@@ -6,4 +6,4 @@ COPY . .
 
 RUN mvn clean package
 
-CMD ["java", "-cp", "target/project1-1.0.jar", "App"]
+CMD ["java", "-cp", "target/sample-java-1.0-SNAPSHOT.jar", "Main"]
