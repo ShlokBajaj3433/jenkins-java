@@ -1,9 +1,19 @@
-FROM maven:3.9.9-eclipse-temurin-17
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-COPY . .
+COPY pom.xml ./
+COPY src ./src
 
-RUN mvn clean package
+RUN mvn -B clean package
 
-CMD ["java", "-cp", "target/sample-java-1.0-SNAPSHOT.jar", "Main"]
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+
+COPY --from=build /app/target/sample-java-1.0-SNAPSHOT.jar app.jar
+
+EXPOSE 8080
+ENV PORT=8080
+
+CMD ["java", "-jar", "app.jar"]
